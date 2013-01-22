@@ -1,0 +1,70 @@
+--- initrd/init	2013-01-22 22:37:56.201621400 +0100
++++ initrd-new/init	2013-01-22 22:44:02.641637251 +0100
+@@ -33,40 +33,42 @@
+     sleep 1
+ done
+ 
+-partition=mmcblk0p9
++partition="mmcblk0p9"
++if [ -e "/dev/mmcblk0p10" ]; then
++    partition="mmcblk0p10"
++fi
+ 
+ echo "Mounting sdcard/nand ..." > /dev/ttyprintk
+ mkdir -m 0777 /sdcard
+ mount -t auto -o rw,noatime,nodiratime /dev/$partition /sdcard
+ [ $? -eq 0 ] || fail "Failed to mount the SD card. Cannot continue."
+ 
+-BASE_ANDROID_DIR="/sdcard/media/"
+-
+-# Workaround for multi-user functionality in Android 4.2
+-if [ -d /sdcard/media/0 ] ; then
+-    BASE_ANDROID_DIR="/sdcard/media/0"
+-fi
+-
+-if [ -e $BASE_ANDROID_DIR/linux/installer ] ; then
+-    sh $BASE_ANDROID_DIR/linux/installer
++mkdir -m 0755 /rfs
+ 
+-    # When we're done with the installation process we're removing the installer script to
+-    # not install everything again on next boot
+-    rm $BASE_ANDROID_DIR/linux/installer
+-fi
++ROOTSUBDIR=""
++LOOP=""
++LOOPFSTYPE=""
++for x in $(cat /proc/cmdline); do
++	case $x in
++	rootsubdir=*)
++		ROOTSUBDIR="${x#rootsubdir=}"
++		;;
++	loop=*)
++		LOOP="${x#loop=}"
++		;;
++	loopfstype=*)
++		LOOPFSTYPE="${x#loopfstype}"
++		;;
++	esac
++done
+ 
+-mkdir -m 0755 /rfs
+-echo "Checking for rootfs image on sdcard/nand ..." > /dev/ttyprintk
+-if [ -e $BASE_ANDROID_DIR/linux/rootfs.ext2 ] ; then
+-    echo "Rootfs image found; mounting it now ..." > /dev/ttyprintk
+-    losetup /dev/loop2 $BASE_ANDROID_DIR/linux/rootfs.ext2
+-    [ $? -eq 0 ] || fail "Failed to find rootfs.img on SD Card!"
+-    e2fsck -y /dev/loop2
+-    mount -t ext2 -o noatime,nodiratime,sync,rw /dev/loop2 /rfs
++if [ -n $ROOTSUBDIR ]; then
++    mount -o bind /sdcard/"$ROOTSUBDIR" /rfs
+     [ $? -eq 0 ] || fail "Failed to mount /rootfs"
+-elif [ -d $BASE_ANDROID_DIR/linux/rootfs ] ; then
+-    echo "Rootfs folder found; chrooting into ..." > /dev/ttyprintk
+-    mount -o bind $BASE_ANDROID_DIR/linux/rootfs /rfs
++elif [ -n $LOOP ] && [ -n $LOOPFSTYPE ]; then
++    losetup /dev/loop2 /sdcard/"$LOOP"
++    [ $? -eq 0 ] || fail "Failed to find root.img!"
++    mount -t $LOOPFSTYPE -o noatime,nodiratime,rw /dev/loop2 /rfs
+     [ $? -eq 0 ] || fail "Failed to mount /rootfs"
+ fi
+ 

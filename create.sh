@@ -5,6 +5,7 @@ DEF_ZIMAGE="zImage-grouper.bin"
 DEF_INITRD="chroot-image-grouper.cpio.gz"
 DEF_MODULES="modules-3.1.10-r0-grouper.tgz"
 INIT_PATCH="init.patch"
+BLKID="blkid"
 
 ROOT_DEST="zip_root/rom"
 ZIP_ROOT="zip_root"
@@ -80,6 +81,9 @@ cp ../initrd.cpio.gz ./
 gzip -d initrd.cpio.gz || fail "Failed to unpack initrd (gzip)"
 cpio -i < initrd.cpio || fail "Failed to unpack initrd (cpio)"
 rm initrd.cpio
+
+# WebOS busybox does not have blkid. Thank god it has traceroute.
+cp -a ../../../$BLKID bin/blkid
 patch -p1 < ../../../$INIT_PATCH || fail "Failed to patch init!"
 (find | sort | cpio --quiet -o -H newc ) | gzip > ../initrd.img || fail "Failed to pack initrd!"
 cd ../..
@@ -97,7 +101,7 @@ tar --numeric-owner -zpcf ../"$ROOT_DEST"/root.tar.gz ./* || fail "Failed to com
 
 echo_b "Packing installation zip..."
 cd "../$ZIP_ROOT" || fail "Failed to cd into ZIP\'s root!"
-zip_name="../${ZIP_DEST}$(date +%Y%m%d).zip"
+zip_name="../${ZIP_DEST}$(date +%Y%m%d).mrom"
 if [ -r $zip_name ]; then 
     rm $zip_name
 fi

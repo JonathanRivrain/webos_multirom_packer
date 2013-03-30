@@ -1,18 +1,49 @@
---- initrd/init	2013-01-22 22:37:56.201621400 +0100
-+++ initrd-new/init	2013-01-22 22:44:02.641637251 +0100
-@@ -33,40 +33,42 @@
+--- initrd/init.orig	2013-03-01 22:23:43.000000000 +0100
++++ initrd/init	2013-03-30 01:50:00.695949672 +0100
+@@ -33,40 +33,55 @@
      sleep 1
  done
  
 -partition=mmcblk0p9
-+partition="mmcblk0p9"
-+if [ -e "/dev/mmcblk0p10" ]; then
-+    partition="mmcblk0p10"
-+fi
++ROOTSUBDIR=""
++LOOP=""
++LOOPFSTYPE=""
++ROOT=""
++ROOTFSTYPE="auto"
++for x in $(cat /proc/cmdline); do
++	case $x in
++	root=*)
++		ROOT="${x#root=}"
++		case $ROOT in
++		UUID=*)
++			ROOT="$(blkid | grep ${ROOT#UUID=} | cut -f1 -d":")"
++			;;
++		esac
++		;;
++	rootfstype=*)
++		ROOTFSTYPE="${x#rootfstype=}"
++		;;
++	rootsubdir=*)
++		ROOTSUBDIR="${x#rootsubdir=}"
++		;;
++	loop=*)
++		LOOP="${x#loop=}"
++		;;
++	loopfstype=*)
++		LOOPFSTYPE="${x#loopfstype=}"
++		;;
++	esac
++done
++
++while [ ! -e $ROOT ] ; do
++    echo "Waiting for ROOT dev $ROOT" > /dev/ttyprintk
++    sleep 1
++done
  
  echo "Mounting sdcard/nand ..." > /dev/ttyprintk
  mkdir -m 0777 /sdcard
- mount -t auto -o rw,noatime,nodiratime /dev/$partition /sdcard
+-mount -t auto -o rw,noatime,nodiratime /dev/$partition /sdcard
++mount -t $ROOTFSTYPE -o rw,noatime,nodiratime $ROOT /sdcard
  [ $? -eq 0 ] || fail "Failed to mount the SD card. Cannot continue."
  
 -BASE_ANDROID_DIR="/sdcard/media/"
@@ -24,30 +55,13 @@
 -
 -if [ -e $BASE_ANDROID_DIR/linux/installer ] ; then
 -    sh $BASE_ANDROID_DIR/linux/installer
-+mkdir -m 0755 /rfs
- 
+-
 -    # When we're done with the installation process we're removing the installer script to
 -    # not install everything again on next boot
 -    rm $BASE_ANDROID_DIR/linux/installer
 -fi
-+ROOTSUBDIR=""
-+LOOP=""
-+LOOPFSTYPE=""
-+for x in $(cat /proc/cmdline); do
-+	case $x in
-+	rootsubdir=*)
-+		ROOTSUBDIR="${x#rootsubdir=}"
-+		;;
-+	loop=*)
-+		LOOP="${x#loop=}"
-+		;;
-+	loopfstype=*)
-+		LOOPFSTYPE="${x#loopfstype}"
-+		;;
-+	esac
-+done
- 
--mkdir -m 0755 /rfs
+-
+ mkdir -m 0755 /rfs
 -echo "Checking for rootfs image on sdcard/nand ..." > /dev/ttyprintk
 -if [ -e $BASE_ANDROID_DIR/linux/rootfs.ext2 ] ; then
 -    echo "Rootfs image found; mounting it now ..." > /dev/ttyprintk
@@ -55,14 +69,15 @@
 -    [ $? -eq 0 ] || fail "Failed to find rootfs.img on SD Card!"
 -    e2fsck -y /dev/loop2
 -    mount -t ext2 -o noatime,nodiratime,sync,rw /dev/loop2 /rfs
-+if [ -n $ROOTSUBDIR ]; then
-+    mount -o bind /sdcard/"$ROOTSUBDIR" /rfs
++if [ -n "$ROOTSUBDIR" ] ; then
++    mount -o bind /sdcard/$ROOTSUBDIR /rfs
      [ $? -eq 0 ] || fail "Failed to mount /rootfs"
 -elif [ -d $BASE_ANDROID_DIR/linux/rootfs ] ; then
 -    echo "Rootfs folder found; chrooting into ..." > /dev/ttyprintk
 -    mount -o bind $BASE_ANDROID_DIR/linux/rootfs /rfs
-+elif [ -n $LOOP ] && [ -n $LOOPFSTYPE ]; then
-+    losetup /dev/loop2 /sdcard/"$LOOP"
++elif [ -n "$LOOP" ] && [ -n "$LOOPFSTYPE" ] ; then
++    mknod /dev/loop2 b 7 2
++    losetup /dev/loop2 /sdcard/$LOOP
 +    [ $? -eq 0 ] || fail "Failed to find root.img!"
 +    mount -t $LOOPFSTYPE -o noatime,nodiratime,rw /dev/loop2 /rfs
      [ $? -eq 0 ] || fail "Failed to mount /rootfs"

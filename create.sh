@@ -1,8 +1,9 @@
 #!/bin/bash
 DEF_ADDR="http://build.webos-ports.org/webos-ports/images/grouper/"
-DEF_ROOT="webos-ports-dev-image-grouper.tar.gz"
+DATE=""
+DEF_ROOT="webos-ports-dev-image-grouper$DATE.tar.gz"
 DEF_ZIMAGE="zImage-grouper.bin"
-DEF_INITRD="chroot-image-grouper.cpio.gz"
+DEF_INITRD="chroot-image-grouper$DATE.cpio.gz"
 DEF_MODULES="modules-3.1.10-r0-grouper.tgz"
 INIT_PATCH="init.patch"
 BLKID="blkid"

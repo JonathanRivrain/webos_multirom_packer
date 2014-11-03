@@ -1,10 +1,10 @@
 #!/bin/bash
 DEF_ADDR="http://build.webos-ports.org/webos-ports/images/grouper/"
 DATE=""
-DEF_ROOT="webos-ports-dev-image-grouper$DATE.tar.gz"
+DEF_ROOT="webos-ports-dev-image-grouper.tar.gz"
 DEF_ZIMAGE="zImage-grouper.bin"
-DEF_INITRD="chroot-image-grouper$DATE.cpio.gz"
-DEF_MODULES="modules-3.1.10-r0-grouper.tgz"
+DEF_INITRD="initramfs-android-image-grouper.cpio.gz"
+DEF_MODULES="modules-grouper.tgz"
 INIT_PATCH="init.patch"
 BLKID="blkid"
 
@@ -60,7 +60,7 @@ cd root
 
 if [ $skip_download != 1 ]; then
     echo_b "Downloading image..."
-    curl -L $DEF_ADDR$DEF_ROOT | tar --numeric-owner -xz || fail "Failed to download the image!"
+  curl -L $DEF_ADDR$DEF_ROOT | tar --numeric-owner -xz || fail "Failed to download the image!"
 
     echo_b "Downloading modules..."
     curl -L $DEF_ADDR$DEF_MODULES | tar --numeric-owner -xz || fail "Failed to download the modules!"

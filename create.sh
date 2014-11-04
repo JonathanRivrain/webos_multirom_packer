@@ -44,9 +44,13 @@ case $variant in
 esac
 }
 
-
+if [ "$(whoami)" != "root" ] ; then
+    echo "This script must be executed with root permissions!"
+    exit 1
+fi
 def_model
 os_variant
+
 
 DEF_ADDR="http://build.webos-ports.org/$OS_VARIANT/images/$DEVICE/"
 DATE=""
@@ -69,6 +73,8 @@ function fail {
     echo -e "\e[01;31mFAILED: $1\e[00m"
     exit 1
 }
+
+
 
 skip_download=0
 for i in $* ; do 

@@ -70,11 +70,6 @@ function fail {
     exit 1
 }
 
-if [ "$(whoami)" != "root" ] ; then
-    echo "This script must be executed with root permissions!"
-    exit 1
-fi
-
 skip_download=0
 for i in $* ; do 
     case $i in
@@ -110,19 +105,19 @@ cd root
 if [ $skip_download != 1 ]; then
     echo_b "Downloading then upacking root filesystem image..."
     
-    wget -c $DEF_ADDR$DEF_ROOT 
+    wget -c $DEF_ADDR$DEF_ROOT -T 30
     tar xvf $DEF_ROOT --numeric-owner
 # was previously curl -L $DEF_ADDR$DEF_ROOT | tar --numeric-owner -xz || fail "Failed to download the image!"
 # But it failed every second try with my irregular connexion. wget -c prevents this issue.
     echo_b "Downloading then unpacking modules..."
-    wget -c $DEF_ADDR$DEF_MODULES 
+    wget -c $DEF_ADDR$DEF_MODULES -T 30
     tar xvf $DEF_MODULES --numeric-owner
     
     echo_b "Downloading zImage..."
-    wget -c $DEF_ADDR$DEF_ZIMAGE -O "boot/zImage-grouper.bin"
+    wget -c $DEF_ADDR$DEF_ZIMAGE -O "boot/zImage-grouper.bin" -T 30
 
     echo_b "Downloading initrd..."
-    wget -c $DEF_ADDR$DEF_INITRD -O "boot/initrd.cpio.gz"
+    wget -c $DEF_ADDR$DEF_INITRD -O "boot/initrd.cpio.gz" -T 30
 fi
 
 echo_b "Patching init..."
@@ -165,4 +160,3 @@ rm $DEF_MODULES $DEF_ROOT
 zip -0 -r $zip_name ./* || fail "Failed to create final ZIP!"
 
 echo_b "Success!"
-
